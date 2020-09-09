@@ -117,7 +117,9 @@ var params = {
 
 
 
-
+router.get('/tool', async (req,res) =>{
+    
+})
 
 router.get('/pollo/:id', async (req, res) => {
     console.log(req.params.id)

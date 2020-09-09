@@ -35,7 +35,12 @@ const UserSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
-    faceIds:[String]
+    faceIds:[String],
+    qrPin:{
+        type: String,
+        maxlength: 30,
+        minlength: 25
+    }
 });
 
 UserSchema.pre('save', function (next) {
