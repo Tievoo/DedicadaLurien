@@ -5,7 +5,8 @@ AWS.config.update({ region: 'us-east-1' });
 const fs = require('fs')
 var fileContent;
 var nombre;
-const UserNew = require('../models/User')
+const UserNew = require('../models/User');
+const { unzipSync } = require('zlib');
 const rekognition = new AWS.Rekognition();
 class AWSManager {
     constructor() { }
@@ -81,29 +82,68 @@ class AWSManager {
         });
     }
 
-    searchByImage = async (parametros, nombre,res) => {
+    findDuplicates = (arr) => {
+        let sorted_arr = arr.slice().sort();
+        let results = [];
+        for (let i = 0; i < sorted_arr.length - 1; i++) {
+            if (sorted_arr[i + 1] == sorted_arr[i]) {
+                results.push(sorted_arr[i]);
+            }
+        }
+        if (results.length != 0) {
+            return results[0]
+        }
+        else return null
+    }
+
+    createErrMsg(err, msg) {
+        let returning = {
+            msgError: err,
+            data: {
+                message: msg
+            }
+        }
+        return returning
+    }
+
+    searchByImage = async (parametros, pin, res) => {
         var faceIdArray = []
         rekognition.searchFacesByImage(parametros, async (err, data) => {
-            if (err) console.log(err, err.stack); // an error occurred
+            if (err) {
+                console.log(err, err.stack);
+                return res.json(this.createErrMsg(true, 'AWS ERROR (No face in camera?)'))
+
+            }  // an error occurred
             else {
-                const user = await UserNew.findOne({ username: nombre })
-                var success = 0;
-                console.log(data)
-                data['FaceMatches'].forEach(async (element) => {
-                    faceIdArray.push(element['Face'].ExternalImageId)
-                })
+                const user = await UserNew.findOne({ qrPin: pin })
+                if (user) {
+                    var success = 0;
+                    console.log(data)
+                    data['FaceMatches'].forEach(async (element) => {
+                        faceIdArray.push(element['Face'].ExternalImageId)
+                    })
 
-                for (var key in faceIdArray) {
-                    if (String(faceIdArray[key]) === String(user.dni)) {
-                        success++;
+                    for (var key in faceIdArray) {
+                        if (String(faceIdArray[key]) === String(user.dni)) {
+                            success++;
+                        }
                     }
-                }
-                if (success >= 2) {
-                    return res.json({ msgError: false, data: { message: 'Entrowo' } })
-                } else {
-                    return res.json({ msgError: true, data: { message: 'PIN/NO SUCH USER' } })
+                    if (success >= 2) {
+                        return res.json(this.createErrMsg(false, ('Entró' + user.username)))
 
-                }
+                    } else {
+                        if (faceIdArray.length >= 2) {
+                            let dniUnk = this.findDuplicates(faceIdArray)
+                            if (dniUnk != null) {
+                                const newUser = await UserNew.findOne({ dni: dniUnk })
+                                return res.json(this.createErrMsg(true, ('Se reconoció la cara de' + newUser.username + ', pero el QR de ' + user.username)))
+
+                            } else return res.json(this.createErrMsg(true, 'Error inesperado.'))
+
+                        } else return res.json(this.createErrMsg(true, 'No se reconoce la cara. Reentrena tu modelo.'))
+                    }
+                } else return res.json(this.createErrMsg(true, 'No existe usuario con ese QR'))
+
             }
         });
 
@@ -117,8 +157,8 @@ var params = {
 
 
 
-router.get('/tool', async (req,res) =>{
-    
+router.get('/tool', async (req, res) => {
+
 })
 
 router.get('/pollo/:id', async (req, res) => {
