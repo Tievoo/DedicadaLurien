@@ -110,7 +110,7 @@ class AWSManager {
         var faceIdArray = []
         rekognition.searchFacesByImage(parametros, async (err, data) => {
             if (err) {
-                console.log(err, err.stack);
+                // console.log(err, err.stack);
                 return res.json(this.createErrMsg(true, 'AWS ERROR (No face in camera?)'))
 
             }  // an error occurred
@@ -118,7 +118,6 @@ class AWSManager {
                 const user = await UserNew.findOne({ qrPin: pin })
                 if (user) {
                     var success = 0;
-                    console.log(data)
                     data['FaceMatches'].forEach(async (element) => {
                         faceIdArray.push(element['Face'].ExternalImageId)
                     })
@@ -129,14 +128,14 @@ class AWSManager {
                         }
                     }
                     if (success >= 2) {
-                        return res.json(this.createErrMsg(false, ('Entró' + user.username)))
+                        return res.json(this.createErrMsg(false, ('Entró ' + user.username)))
 
                     } else {
                         if (faceIdArray.length >= 2) {
                             let dniUnk = this.findDuplicates(faceIdArray)
                             if (dniUnk != null) {
                                 const newUser = await UserNew.findOne({ dni: dniUnk })
-                                return res.json(this.createErrMsg(true, ('Se reconoció la cara de' + newUser.username + ', pero el QR de ' + user.username)))
+                                return res.json(this.createErrMsg(true, ('Se reconoció la cara de ' + newUser.username + ', pero el QR de ' + user.username)))
 
                             } else return res.json(this.createErrMsg(true, 'Error inesperado.'))
 
