@@ -169,7 +169,7 @@ router.get('/tool', async (req, res) => {
 })
 
 router.get('/pollo/:id', async (req, res) => {
-    console.log(req.params.id)
+    //console.log(req.params.id)
     fileContent = fs.readFileSync('testimage.png')
     var searchParams = {
         CollectionId: '1a2b3c',

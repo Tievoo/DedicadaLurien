@@ -4,6 +4,7 @@ const fs = require('fs')
 const express = require('express')
 const app = express()
 const cors = require('cors')
+const {spawn} = require('child_process')
 const UserNew = require('./models/User')
 AWS.config.update({ region: 'us-east-1' });
 const mongoose = require('mongoose')
@@ -23,5 +24,7 @@ var faceIdArray = []
 
 app.listen(6969, ()=>{
   console.log("boca.")
-})
+  const py = spawn('python',['test.py'])
+  
+ })
 
