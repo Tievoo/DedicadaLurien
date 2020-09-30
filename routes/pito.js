@@ -3,8 +3,9 @@ const router = express.Router()
 const AWS = require('aws-sdk');
 AWS.config.update({ region: 'us-east-1' });
 const fs = require('fs')
+const axios = require('axios')
 var fileContent;
-var nombre;
+var url = 'http://localhost:8080';
 const UserNew = require('../models/User');
 const { unzipSync } = require('zlib');
 const rekognition = new AWS.Rekognition();
@@ -110,7 +111,7 @@ class AWSManager {
         var faceIdArray = []
         rekognition.searchFacesByImage(parametros, async (err, data) => {
             if (err) {
-                // console.log(err, err.stack);
+                console.log(err, err.stack);
                 return res.json(this.createErrMsg(true, 'AWS ERROR (No face in camera?)'))
 
             }  // an error occurred
@@ -128,6 +129,13 @@ class AWSManager {
                         }
                     }
                     if (success >= 2) {
+                        var date = new Date()
+                        var hora = `${date.getHours()}:${date.getMinutes()}`
+                        axios.post(`${url}/api/debug/companyid`, {
+                            name:user.username,
+                            hour:hora,
+                            companyid:user.companyID
+                        })
                         return res.json(this.createErrMsg(false, ('Entró ' + user.username)))
 
                     } else {
@@ -164,7 +172,7 @@ router.get('/pollo/:id', async (req, res) => {
     console.log(req.params.id)
     fileContent = fs.readFileSync('testimage.png')
     var searchParams = {
-        CollectionId: 'dedicada',
+        CollectionId: '1a2b3c',
         FaceMatchThreshold: 95,
         Image: {
             Bytes: Buffer.from(fileContent)

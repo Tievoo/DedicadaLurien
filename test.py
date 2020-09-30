@@ -24,8 +24,9 @@ while True:
         if cv2.waitKey(1) == ord("Q"):
             break
     if not check:
-        check = True
         sleep(1)
+        check = True
+        
 
 cam.release()
 cv2.destroyAllWindows()
