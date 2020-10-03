@@ -7,8 +7,10 @@ const axios = require('axios')
 var fileContent;
 var url = 'http://localhost:8080';
 const UserNew = require('../models/User');
+var mongoose = require('mongoose')
 const { unzipSync } = require('zlib');
 const rekognition = new AWS.Rekognition();
+const Entrada = mongoose.model('Entrada', new mongoose.Schema({ dni: Number, name: String, hour: String, img: Buffer }));
 class AWSManager {
     constructor() { }
     createBucket = (BUCKET_NAME) => {
@@ -107,15 +109,16 @@ class AWSManager {
         return returning
     }
 
-    searchByImage = async (parametros, pin, res) => {
+    searchByImage = async (parametros, pin, callback) => {
         var faceIdArray = []
         rekognition.searchFacesByImage(parametros, async (err, data) => {
             if (err) {
                 console.log(err, err.stack);
-                return res.json(this.createErrMsg(true, 'AWS ERROR (No face in camera?)'))
+                return console.log(this.createErrMsg(true, 'AWS ERROR (No face in camera?)'))
 
             }  // an error occurred
             else {
+                mongoose.connection.useDb("lurien")
                 const user = await UserNew.findOne({ qrPin: pin })
                 if (user) {
                     var success = 0;
@@ -130,26 +133,27 @@ class AWSManager {
                     }
                     if (success >= 2) {
                         var date = new Date()
-                        var hora = `${date.getHours()}:${date.getMinutes()}`
+                        var hora = `${date.getHours()}:${date.getMinutes()}, ${date.getDate()}/${date.getMonth()}`
                         axios.post(`${url}/api/debug/companyid`, {
-                            name:user.username,
-                            hour:hora,
-                            companyid:user.companyID
+                            name: user.username,
+                            hour: hora,
+                            companyid: user.companyID
                         })
-                        return res.json(this.createErrMsg(false, ('Entró ' + user.username)))
+                        callback(user.companyID, user.dni, hora, user.username)
+                        return console.log(this.createErrMsg(false, ('Entró ' + user.username)))
 
                     } else {
                         if (faceIdArray.length >= 2) {
                             let dniUnk = this.findDuplicates(faceIdArray)
                             if (dniUnk != null) {
                                 const newUser = await UserNew.findOne({ dni: dniUnk })
-                                return res.json(this.createErrMsg(true, ('Se reconoció la cara de ' + newUser.username + ', pero el QR de ' + user.username)))
+                                return console.log(this.createErrMsg(true, ('Se reconoció la cara de ' + newUser.username + ', pero el QR de ' + user.username)))
 
-                            } else return res.json(this.createErrMsg(true, 'Error inesperado.'))
+                            } else return console.log(this.createErrMsg(true, 'Error inesperado.'))
 
-                        } else return res.json(this.createErrMsg(true, 'No se reconoce la cara. Reentrena tu modelo.'))
+                        } else return console.log(this.createErrMsg(true, 'No se reconoce la cara. Reentrena tu modelo.'))
                     }
-                } else return res.json(this.createErrMsg(true, 'No existe usuario con ese QR'))
+                } else return console.log(this.createErrMsg(true, 'No existe usuario con ese QR'))
 
             }
         });
@@ -170,16 +174,28 @@ router.get('/tool', async (req, res) => {
 
 router.get('/pollo/:id', async (req, res) => {
     //console.log(req.params.id)
+    
+
+
     fileContent = fs.readFileSync('testimage.png')
     var searchParams = {
-        CollectionId: '1a2b3c',
+        CollectionId: '1a2b3c', //podemos usar .env para esto or sth o un json interno que se arme con el instalador, por que si no, solo con el qr no hay forma de saber la compID
         FaceMatchThreshold: 95,
         Image: {
             Bytes: Buffer.from(fileContent)
         },
         MaxFaces: 5
     }
-    manager.searchByImage(searchParams, req.params.id, res)
+    manager.searchByImage(searchParams, req.params.id, (compid, dni, hour, name) => {
+        console.log('on it')
+        mongoose.connection.useDb("lurien").collection("entradas")//lurien seria reemplazado por company id
+        const newEntry = new Entrada({ dni, hour, name, img: Buffer.from(fileContent) })
+        newEntry.save(function (err) {
+            // if (err) return console.log(String(err))
+            // else return console.log('godines')
+            return res.json('Salio bien')
+        })
+    })
 })
 
 module.exports = router
