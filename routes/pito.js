@@ -5,12 +5,13 @@ AWS.config.update({ region: 'us-east-1' });
 const fs = require('fs')
 const axios = require('axios')
 var fileContent;
+var btoa = require('btoa')
 var url = 'http://localhost:8080';
 const UserNew = require('../models/User');
 var mongoose = require('mongoose')
 const { unzipSync } = require('zlib');
 const rekognition = new AWS.Rekognition();
-const Entrada = mongoose.model('Entrada', new mongoose.Schema({ dni: Number, name: String, hour: String, img: Buffer }));
+const Entrada = mongoose.model('Entrada', new mongoose.Schema({ dni: Number, name: String, hour: String, img: String }));
 class AWSManager {
     constructor() { }
     createBucket = (BUCKET_NAME) => {
@@ -113,8 +114,8 @@ class AWSManager {
         var faceIdArray = []
         rekognition.searchFacesByImage(parametros, async (err, data) => {
             if (err) {
-                console.log(err, err.stack);
-                return console.log(this.createErrMsg(true, 'AWS ERROR (No face in camera?)'))
+                //console.log(err, err.stack);
+                callback(user.companyID, user.dni, hora, user.username,this.createErrMsg(true, 'AWS ERROR (No face in camera?)'))
 
             }  // an error occurred
             else {
@@ -140,20 +141,21 @@ class AWSManager {
                             companyid: user.companyID
                         })
                         callback(user.companyID, user.dni, hora, user.username)
-                        return console.log(this.createErrMsg(false, ('Entró ' + user.username)))
+                        
 
                     } else {
                         if (faceIdArray.length >= 2) {
                             let dniUnk = this.findDuplicates(faceIdArray)
                             if (dniUnk != null) {
                                 const newUser = await UserNew.findOne({ dni: dniUnk })
-                                return console.log(this.createErrMsg(true, ('Se reconoció la cara de ' + newUser.username + ', pero el QR de ' + user.username)))
+                                callback(user.companyID, user.dni, hora, user.username,this.createErrMsg(true, ('Se reconoció la cara de ' + newUser.username + ', pero el QR de ' + user.username)))
+                                
 
-                            } else return console.log(this.createErrMsg(true, 'Error inesperado.'))
+                            } else callback(user.companyID, user.dni, hora, user.username,this.createErrMsg(true, ('error inesperado')))
 
-                        } else return console.log(this.createErrMsg(true, 'No se reconoce la cara. Reentrena tu modelo.'))
+                        } else callback(user.companyID, user.dni, hora, user.username,this.createErrMsg(true, 'No se reconoce la cara. Reentrena tu modelo.'))
                     }
-                } else return console.log(this.createErrMsg(true, 'No existe usuario con ese QR'))
+                } else callback(null, null, null, null,this.createErrMsg(true, 'No existe usuario con ese QR'))
 
             }
         });
@@ -186,15 +188,26 @@ router.get('/pollo/:id', async (req, res) => {
         },
         MaxFaces: 5
     }
-    manager.searchByImage(searchParams, req.params.id, (compid, dni, hour, name) => {
-        console.log('on it')
+    manager.searchByImage(searchParams, req.params.id, (compid, dni, hour, name, err) => {
+        if (err){
+            console.log(err) 
+            return res.json(err)
+        }
+        else{console.log('on it')
         mongoose.connection.useDb("lurien").collection("entradas")//lurien seria reemplazado por company id
-        const newEntry = new Entrada({ dni, hour, name, img: Buffer.from(fileContent) })
+        var bod = Buffer.from(fileContent)
+        var img = btoa(bod.reduce(function (data, byte) {
+            return data + String.fromCharCode(byte);
+        }, ''));
+        const newEntry = new Entrada({ dni, hour, name, img })
         newEntry.save(function (err) {
             // if (err) return console.log(String(err))
             // else return console.log('godines')
+            fs.unlinkSync('testimage.png')
+            console.log('picado')
             return res.json('Salio bien')
-        })
+        })}
+        
     })
 })
 

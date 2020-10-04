@@ -16,8 +16,8 @@ while True:
                 cv2.imwrite("testimage.png", img)
                 check = False
                 r = requests.get(f'http://localhost:6969/ballena/pollo/{data}')
-                reponse = json.loads(r.text)
-                print(reponse['data']['message'])
+                # reponse = json.loads(r.text)
+                # print(reponse['data']['message'])
         except Exception as err:
             pass
         cv2.imshow("img", img)
