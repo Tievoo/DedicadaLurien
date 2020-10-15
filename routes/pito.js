@@ -119,7 +119,8 @@ class AWSManager {
 
             }  // an error occurred
             else {
-                mongoose.connection.useDb("lurien")
+                mongoose.connection.useDb("lurien").collection("usernews")
+                console.log(pin)
                 const user = await UserNew.findOne({ qrPin: pin })
                 if (user) {
                     var success = 0;
@@ -134,7 +135,7 @@ class AWSManager {
                     }
                     if (success >= 2) {
                         var date = new Date()
-                        var hora = `${date.getHours()}:${date.getMinutes()}, ${date.getDate()}/${date.getMonth()}`
+                        var hora = `${date.getHours()}:${date.getMinutes()}, ${date.getDate()}/${date.getMonth()+1}`
                         axios.post(`${url}/api/debug/companyid`, {
                             name: user.username,
                             hour: hora,

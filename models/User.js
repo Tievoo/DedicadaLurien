@@ -40,7 +40,16 @@ const UserSchema = new mongoose.Schema({
         type: String,
         maxlength: 30,
         minlength: 25
-    }
+    },
+    pfp:{
+        type:String,
+        default:""
+    },
+    qrLink:{
+        type:String,
+        default:""
+    },
+    modelLinks:[String]
 });
 
 UserSchema.pre('save', function (next) {
