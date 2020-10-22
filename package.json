@@ -5,11 +5,15 @@
         "bcrypt": "^5.0.0",
         "btoa": "^1.2.1",
         "cors": "^2.8.5",
+        "dotenv": "^8.2.0",
         "express": "^4.17.1",
+        "firebase": "^7.24.0",
+        "firebase-admin": "^9.2.0",
         "fs": "0.0.1-security",
         "mongoose": "^5.10.4",
         "node-uuid": ">= 1.4.1",
         "node-webcam": "^0.6.4",
-        "webcam": "^3.2.1"
+        "webcam": "^3.2.1",
+        "xhr2": "^0.2.0"
     }
 }

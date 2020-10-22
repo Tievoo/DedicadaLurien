@@ -7,9 +7,10 @@ const axios = require('axios')
 var fileContent;
 var btoa = require('btoa')
 var url = 'http://localhost:8080';
+var firebase = require("firebase")
+require('firebase/storage')
 const UserNew = require('../models/User');
 var mongoose = require('mongoose')
-const { unzipSync } = require('zlib');
 const rekognition = new AWS.Rekognition();
 const Entrada = mongoose.model('Entrada', new mongoose.Schema({ dni: Number, name: String, hour: String, img: String }));
 class AWSManager {
@@ -114,8 +115,8 @@ class AWSManager {
         var faceIdArray = []
         rekognition.searchFacesByImage(parametros, async (err, data) => {
             if (err) {
-                //console.log(err, err.stack);
-                callback(user.companyID, user.dni, hora, user.username,this.createErrMsg(true, 'AWS ERROR (No face in camera?)'))
+                console.log(err, err.stack);
+                //callback(user.companyID, user.dni, hora, user.username, this.createErrMsg(true, 'AWS ERROR (No face in camera?)'))
 
             }  // an error occurred
             else {
@@ -135,28 +136,28 @@ class AWSManager {
                     }
                     if (success >= 2) {
                         var date = new Date()
-                        var hora = `${date.getHours()}:${date.getMinutes()}, ${date.getDate()}/${date.getMonth()+1}`
-                        axios.post(`${url}/api/debug/companyid`, {
-                            name: user.username,
-                            hour: hora,
-                            companyid: user.companyID
-                        })
+                        var hora = `${date.getHours()}:${date.getMinutes()}, ${date.getDate()}/${date.getMonth() + 1}`
+                        // axios.post(`${url}/api/debug/companyid`, {
+                        //     name: user.username,
+                        //     hour: hora,
+                        //     companyid: user.companyID
+                        // })
                         callback(user.companyID, user.dni, hora, user.username)
-                        
+
 
                     } else {
                         if (faceIdArray.length >= 2) {
                             let dniUnk = this.findDuplicates(faceIdArray)
                             if (dniUnk != null) {
                                 const newUser = await UserNew.findOne({ dni: dniUnk })
-                                callback(user.companyID, user.dni, hora, user.username,this.createErrMsg(true, ('Se reconoció la cara de ' + newUser.username + ', pero el QR de ' + user.username)))
-                                
+                                callback(user.companyID, user.dni, hora, user.username, this.createErrMsg(true, ('Se reconoció la cara de ' + newUser.username + ', pero el QR de ' + user.username)))
 
-                            } else callback(user.companyID, user.dni, hora, user.username,this.createErrMsg(true, ('error inesperado')))
 
-                        } else callback(user.companyID, user.dni, hora, user.username,this.createErrMsg(true, 'No se reconoce la cara. Reentrena tu modelo.'))
+                            } else callback(user.companyID, user.dni, hora, user.username, this.createErrMsg(true, ('error inesperado')))
+
+                        } else callback(user.companyID, user.dni, hora, user.username, this.createErrMsg(true, 'No se reconoce la cara. Reentrena tu modelo.'))
                     }
-                } else callback(null, null, null, null,this.createErrMsg(true, 'No existe usuario con ese QR'))
+                } else callback(null, null, null, null, this.createErrMsg(true, 'No existe usuario con ese QR'))
 
             }
         });
@@ -177,7 +178,7 @@ router.get('/tool', async (req, res) => {
 
 router.get('/pollo/:id', async (req, res) => {
     //console.log(req.params.id)
-    
+
 
 
     fileContent = fs.readFileSync('testimage.png')
@@ -189,26 +190,27 @@ router.get('/pollo/:id', async (req, res) => {
         },
         MaxFaces: 5
     }
-    manager.searchByImage(searchParams, req.params.id, (compid, dni, hour, name, err) => {
-        if (err){
-            console.log(err) 
+    manager.searchByImage(searchParams, req.params.id, async (compid, dni, hour, name, err) => {
+        if (err) {
+            console.log(err)
             return res.json(err)
         }
-        else{console.log('on it')
-        mongoose.connection.useDb("lurien").collection("entradas")//lurien seria reemplazado por company id
-        var bod = Buffer.from(fileContent)
-        var img = btoa(bod.reduce(function (data, byte) {
-            return data + String.fromCharCode(byte);
-        }, ''));
-        const newEntry = new Entrada({ dni, hour, name, img })
-        newEntry.save(function (err) {
-            // if (err) return console.log(String(err))
-            // else return console.log('godines')
-            fs.unlinkSync('testimage.png')
-            console.log('picado')
-            return res.json('Salio bien')
-        })}
-        
+        else {
+            console.log('on it')
+            mongoose.connection.useDb("lurien").collection("entradas")//lurien seria reemplazado por company id
+            var bod = fileContent
+            var img = ""
+            await firebase.storage().ref('1a2b3c/test/test.png').put(bod).then(snap => {
+                snap.ref.getDownloadURL().then(img => {
+                    const newEntry = new Entrada({ dni, hour, name, img })
+                    newEntry.save(function (err) {
+                        fs.unlinkSync('testimage.png')
+                        console.log('picado')
+                        return res.json('Salio bien')
+                    })
+                })
+            })
+        }
     })
 })
 
