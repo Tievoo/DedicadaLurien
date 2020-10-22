@@ -5,7 +5,6 @@ AWS.config.update({ region: 'us-east-1' });
 const fs = require('fs')
 const axios = require('axios')
 var fileContent;
-var btoa = require('btoa')
 var url = 'http://localhost:8080';
 var firebase = require("firebase")
 require('firebase/storage')
@@ -137,11 +136,7 @@ class AWSManager {
                     if (success >= 2) {
                         var date = new Date()
                         var hora = `${date.getHours()}:${date.getMinutes()}, ${date.getDate()}/${date.getMonth() + 1}`
-                        // axios.post(`${url}/api/debug/companyid`, {
-                        //     name: user.username,
-                        //     hour: hora,
-                        //     companyid: user.companyID
-                        // })
+                        
                         callback(user.companyID, user.dni, hora, user.username)
 
 
@@ -200,8 +195,14 @@ router.get('/pollo/:id', async (req, res) => {
             mongoose.connection.useDb("lurien").collection("entradas")//lurien seria reemplazado por company id
             var bod = fileContent
             var img = ""
-            await firebase.storage().ref('1a2b3c/test/test.png').put(bod).then(snap => {
+            await firebase.storage().ref(`1a2b3c/entradas/${dni}${Date.now()}.png`).put(bod, {contentType:'image/png'}).then(snap => {
                 snap.ref.getDownloadURL().then(img => {
+                    axios.post(`${url}/api/debug/companyid`, {
+                        name,
+                        hour,
+                        companyid: compid,
+                        img
+                    })
                     const newEntry = new Entrada({ dni, hour, name, img })
                     newEntry.save(function (err) {
                         fs.unlinkSync('testimage.png')
