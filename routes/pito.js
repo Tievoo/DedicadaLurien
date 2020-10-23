@@ -197,7 +197,7 @@ router.get('/pollo/:id', async (req, res) => {
             var img = ""
             await firebase.storage().ref(`1a2b3c/entradas/${dni}${Date.now()}.png`).put(bod, {contentType:'image/png'}).then(snap => {
                 snap.ref.getDownloadURL().then(img => {
-                    axios.post(`${url}/api/debug/companyid`, {
+                    axios.post(`${url}/api/entradas/new`, {
                         name,
                         hour,
                         companyid: compid,

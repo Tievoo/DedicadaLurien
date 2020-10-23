@@ -1,11 +1,11 @@
-import cv2
+from cv2 import cv2
 from time import sleep
 import requests
 import json
 check = True
 
 
-cam = cv2.VideoCapture(1)
+cam = cv2.VideoCapture(0)
 detector = cv2.QRCodeDetector()
 while True:
     while check:
