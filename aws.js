@@ -63,7 +63,6 @@ app.listen(6969, async ()=>{
   
   var tkn = await admin.auth().createCustomToken("baruj ata", { hidden: process.env.hidden })
   firebase.auth().signInWithCustomToken(tkn)
-  const py = spawn('python',['test.py'])
-  
+  const py = spawn('python',['test.py', process.env.CAMERA]) 
  })
 
