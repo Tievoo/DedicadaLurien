@@ -15,7 +15,7 @@ require('dotenv').config()
 global.XMLHttpRequest = require("xhr2");
 var serviceAccount = 'firebase.json'
 const uri = "mongodb+srv://tievo:sdBVjd8GQGsw6Jag@lurien.1yjjv.mongodb.net/lurien?retryWrites=true&w=majority";
-
+let py;
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   storageBucket: "test-lurien.appspot.com"
@@ -53,12 +53,27 @@ app.get('/messi', async (req, res) => {
 app.get('/runLurien', async (req, res) => {
 
   try {
+    console.log("EMPIEZA LURIEN")
     var tkn = await admin.auth().createCustomToken("baruj ata", { hidden: process.env.hidden })
     firebase.auth().signInWithCustomToken(tkn)
-    const py = spawn('python', ['test.py', process.env.CAMERA])
+   py = spawn('python', ['test.py', process.env.CAMERA])
+   return res.json({ message: "corriendo", msgError:false })
+
   } catch (err) {
     return res.json({ message: err, msgError: true })
 
+  }
+
+})
+app.get('/killLurien', async (req, res) => {
+
+  try {
+    py.kill();
+    return res.json({ message: "muerto", msgError: false })
+    
+  } catch (err) {
+    return res.json({ message: err, msgError: true })
+  
   }
 
 })
